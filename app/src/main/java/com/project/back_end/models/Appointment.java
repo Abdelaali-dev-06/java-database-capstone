@@ -1,4 +1,14 @@
 package com.project.back_end.models;
+import jakarta.persistence.Entity;
+import jakarta.persistence.Id;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
+import jakarta.persistence.ManyToOne;
+import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Future;
+import java.time.LocalDateTime;
+import java.time.LocalDate;
+import java.time.LocalTime;
 
 @Entity
 public class Appointment {
@@ -6,14 +16,14 @@ public class Appointment {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
-    @ManytoOne
+    @ManyToOne
     @NotNull
     private Doctor doctor;
-    @ManytoOne
+    @ManyToOne
     @NotNull
     private Patient patient;
     @Future
-    private LocalDateTime localDateTime:
+    private LocalDateTime localDateTime;
     @NotNull
     private int status;
 

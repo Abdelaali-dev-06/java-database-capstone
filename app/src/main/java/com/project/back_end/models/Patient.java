@@ -1,4 +1,12 @@
 package com.project.back_end.models;
+import jakarta.persistence.Entity;
+import jakarta.persistence.Id;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
+import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Size;
+import jakarta.validation.constraints.Email;
+import jakarta.validation.constraints.Pattern;
 
 @Entity
 public class Patient {
@@ -9,7 +17,7 @@ public class Patient {
     @NotNull
     @Size(min=3,max=50)
     private String name;
-    @email
+    @Email
     @NotNull
     private String email;
     @NotNull
