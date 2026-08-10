@@ -1,72 +1,155 @@
-/*
-  This script handles the admin dashboard functionality for managing doctors:
-  - Loads all doctor cards
-  - Filters doctors by name, time, or specialty
-  - Adds a new doctor via modal form
+// adminDashboard.js
 
+import { createDoctorCard } from "../components/doctorCard.js";
+import { openModal } from "../components/modal.js";
+import { getDoctors, filterDoctors, saveDoctor } from "../services/doctorServices.js";
 
-  Attach a click listener to the "Add Doctor" button
-  When clicked, it opens a modal form using openModal('addDoctor')
+// Attach a click listener to the "Add Doctor" button
+document.addEventListener("DOMContentLoaded", () => {
+    const addDocBtn = document.getElementById("addDocBtn");
+    if (addDocBtn) {
+        addDocBtn.addEventListener("click", () => {
+            openModal("addDoctor");
+        });
+    }
 
+    // Call loadDoctorCards() to fetch and display all doctors
+    loadDoctorCards();
 
-  When the DOM is fully loaded:
-    - Call loadDoctorCards() to fetch and display all doctors
+    // Attach 'input' and 'change' event listeners to the search bar and filter dropdowns
+    const searchBar = document.getElementById("searchBar");
+    const timeFilter = document.getElementById("timeFilter");
+    const specialtyFilter = document.getElementById("specialtyFilter");
 
+    if (searchBar) searchBar.addEventListener("input", filterDoctorsOnChange);
+    if (timeFilter) timeFilter.addEventListener("change", filterDoctorsOnChange);
+    if (specialtyFilter) specialtyFilter.addEventListener("change", filterDoctorsOnChange);
+});
 
-  Function: loadDoctorCards
-  Purpose: Fetch all doctors and display them as cards
+// Function: loadDoctorCards
+// Purpose: Fetch all doctors and display them as cards
+async function loadDoctorCards() {
+    try {
+        // Call getDoctors() from the service layer
+        const doctors = await getDoctors();
 
-    Call getDoctors() from the service layer
-    Clear the current content area
-    For each doctor returned:
-    - Create a doctor card using createDoctorCard()
-    - Append it to the content div
+        // Clear the current content area
+        const contentDiv = document.getElementById("content");
+        contentDiv.innerHTML = "";
 
-    Handle any fetch errors by logging them
+        // For each doctor returned, create a card and append it
+        doctors.forEach((doctor) => {
+            const card = createDoctorCard(doctor);
+            contentDiv.appendChild(card);
+        });
+    } catch (error) {
+        // Handle any fetch errors by logging them
+        console.error("Error loading doctor cards:", error);
+    }
+}
 
+// Function: filterDoctorsOnChange
+// Purpose: Filter doctors based on name, available time, and specialty
+async function filterDoctorsOnChange() {
+    try {
+        // Read values from the search bar and filters
+        const searchBar = document.getElementById("searchBar");
+        const timeFilter = document.getElementById("timeFilter");
+        const specialtyFilter = document.getElementById("specialtyFilter");
 
-  Attach 'input' and 'change' event listeners to the search bar and filter dropdowns
-  On any input change, call filterDoctorsOnChange()
+        const nameValue = searchBar ? searchBar.value.trim() : "";
+        const timeValue = timeFilter ? timeFilter.value : "";
+        const specialtyValue = specialtyFilter ? specialtyFilter.value : "";
 
+        // Normalize empty values to null
+        const name = nameValue !== "" ? nameValue : null;
+        const time = timeValue !== "" ? timeValue : null;
+        const specialty = specialtyValue !== "" ? specialtyValue : null;
 
-  Function: filterDoctorsOnChange
-  Purpose: Filter doctors based on name, available time, and specialty
+        // Call filterDoctors(name, time, specialty) from the service
+        const doctors = await filterDoctors(name, time, specialty);
 
-    Read values from the search bar and filters
-    Normalize empty values to null
-    Call filterDoctors(name, time, specialty) from the service
+        if (doctors && doctors.length > 0) {
+            // If doctors are found, render them
+            renderDoctorCards(doctors);
+        } else {
+            // If no doctors match the filter, show a message
+            const contentDiv = document.getElementById("content");
+            contentDiv.innerHTML = `<p class="noPatientRecord">No doctors found with the given filters.</p>`;
+        }
+    } catch (error) {
+        // Catch and display any errors with an alert
+        console.error("Error filtering doctors:", error);
+        alert("An error occurred while filtering doctors.");
+    }
+}
 
-    If doctors are found:
-    - Render them using createDoctorCard()
-    If no doctors match the filter:
-    - Show a message: "No doctors found with the given filters."
+// Function: renderDoctorCards
+// Purpose: A helper function to render a list of doctors passed to it
+function renderDoctorCards(doctors) {
+    // Clear the content area
+    const contentDiv = document.getElementById("content");
+    contentDiv.innerHTML = "";
 
-    Catch and display any errors with an alert
+    // Loop through the doctors and append each card to the content area
+    doctors.forEach((doctor) => {
+        const card = createDoctorCard(doctor);
+        contentDiv.appendChild(card);
+    });
+}
 
+// Function: adminAddDoctor
+// Purpose: Collect form data and add a new doctor to the system
+async function adminAddDoctor() {
+    // Collect input values from the modal form
+    const name = document.getElementById("doctorName").value;
+    const email = document.getElementById("doctorEmail").value;
+    const phone = document.getElementById("doctorPhone").value;
+    const password = document.getElementById("doctorPassword").value;
+    const specialty = document.getElementById("doctorSpecialty").value;
 
-  Function: renderDoctorCards
-  Purpose: A helper function to render a list of doctors passed to it
+    const availableTimesInput = document.getElementById("doctorAvailableTimes");
+    const availableTimes = availableTimesInput
+        ? availableTimesInput.value.split(",").map((t) => t.trim())
+        : [];
 
-    Clear the content area
-    Loop through the doctors and append each card to the content area
+    // Retrieve the authentication token from localStorage
+    const token = localStorage.getItem("token");
 
+    // If no token is found, show an alert and stop execution
+    if (!token) {
+        alert("You must be logged in as an admin to add a doctor.");
+        return;
+    }
 
-  Function: adminAddDoctor
-  Purpose: Collect form data and add a new doctor to the system
+    // Build a doctor object with the form values
+    const doctor = {
+        name,
+        email,
+        phone,
+        password,
+        specialty,
+        availableTimes,
+    };
 
-    Collect input values from the modal form
-    - Includes name, email, phone, password, specialty, and available times
+    try {
+        // Call saveDoctor(doctor, token) from the service
+        const result = await saveDoctor(doctor, token);
 
-    Retrieve the authentication token from localStorage
-    - If no token is found, show an alert and stop execution
+        if (result.success) {
+            // If save is successful, show a success message
+            alert("Doctor added successfully.");
 
-    Build a doctor object with the form values
-
-    Call saveDoctor(doctor, token) from the service
-
-    If save is successful:
-    - Show a success message
-    - Close the modal and reload the page
-
-    If saving fails, show an error message
-*/
+            // Close the modal and reload the page
+            const modal = document.getElementById("modal");
+            if (modal) modal.style.display = "none";
+            window.location.reload();
+        } else {
+            // If saving fails, show an error message
+            alert(result.message || "Failed to add doctor.");
+        }
+    } catch (error) {
+        console.error("Error adding doctor:", error);
+        alert("An error occurred while adding the doctor.");
+    }
+}
