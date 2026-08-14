@@ -1,36 +1,38 @@
 package com.project.back_end.models;
-import jakarta.persistence.Entity;
-import jakarta.persistence.Id;
-import jakarta.persistence.GeneratedValue;
-import jakarta.persistence.GenerationType;
-import jakarta.persistence.ManyToOne;
-import jakarta.validation.constraints.NotNull;
-import jakarta.validation.constraints.Future;
-import java.time.LocalDateTime;
+
+import jakarta.persistence.*;
 import java.time.LocalDate;
-import java.time.LocalTime;
+import java.time.LocalDateTime;
 
 @Entity
+@Table(name = "appointment")
 public class Appointment {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
-    @ManyToOne
-    @NotNull
-    private Doctor doctor;
-    @ManyToOne
-    @NotNull
-    private Patient patient;
-    @Future
-    private LocalDateTime localDateTime;
-    @NotNull
-    private int status;
 
-    public Appointment(Patient patient, Long id, Doctor doctor, LocalDateTime localDateTime, int status) {
-        this.patient = patient;
+    @ManyToOne
+    @JoinColumn(name = "doctor_id", nullable = false)
+    private Doctor doctor;
+
+    @ManyToOne
+    @JoinColumn(name = "patient_id", nullable = false)
+    private Patient patient;
+
+    @Column(nullable = false)
+    private LocalDateTime localDateTime;
+
+    @Column(nullable = false)
+    private String status;
+
+    public Appointment() {
+    }
+
+    public Appointment(Long id, Doctor doctor, Patient patient, LocalDateTime localDateTime, String status) {
         this.id = id;
         this.doctor = doctor;
+        this.patient = patient;
         this.localDateTime = localDateTime;
         this.status = status;
     }
@@ -67,24 +69,20 @@ public class Appointment {
         this.localDateTime = localDateTime;
     }
 
-    public int getStatus() {
+    public String getStatus() {
         return status;
     }
 
-    public void setStatus(int status) {
+    public void setStatus(String status) {
         this.status = status;
     }
 
-    private LocalDateTime getEndTime() {
-        return LocalDateTime.now().minusHours(1);
+    // Helper methods expected by Service & DoctorService
+    public LocalDate getAppointmentDate() {
+        return localDateTime != null ? localDateTime.toLocalDate() : null;
     }
 
-    private LocalDate getAppointmentDate() {
-        return LocalDate.now();
-    }
-
-    private LocalTime getAppointmentTimeOnly() {
-        return LocalTime.now().minusHours(1);
+    public String getAppointmentTimeOnly() {
+        return localDateTime != null ? localDateTime.toLocalTime().toString() : "";
     }
 }
-

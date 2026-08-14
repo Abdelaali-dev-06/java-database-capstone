@@ -1,48 +1,53 @@
 package com.project.back_end.models;
-import jakarta.persistence.Entity;
-import jakarta.persistence.Id;
-import jakarta.persistence.GeneratedValue;
-import jakarta.persistence.GenerationType;
-import jakarta.persistence.ElementCollection;
-import jakarta.validation.constraints.NotNull;
-import jakarta.validation.constraints.Size;
+
+import jakarta.persistence.*;
 import jakarta.validation.constraints.Email;
-import jakarta.validation.constraints.Pattern;
-import com.fasterxml.jackson.annotation.JsonProperty;
+import jakarta.validation.constraints.NotBlank;
 import java.util.List;
+import jakarta.persistence.FetchType;
 
 @Entity
+@Table(name = "doctor")
 public class Doctor {
+
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
-    @NotNull
-    @Size(min=3,max=50)
+
+    @NotBlank(message = "Name is required")
     private String name;
-    @NotNull
-    @Size(min = 3 , max = 50)
-    private String speciality;
-    @Email
-    @NotNull
+
+    @Email(message = "Invalid email address")
+    @NotBlank(message = "Email is required")
+    @Column(unique = true)
     private String email;
-    @NotNull
-    @JsonProperty(access = JsonProperty.Access.WRITE_ONLY)
-    @Size(min = 6)
+
+    @NotBlank(message = "Password is required")
     private String password;
-    @Pattern(regexp = "^[0-9]{10}$")
-    private String phone;
-    @ElementCollection
+
+    @Column(name = "speciality")
+    private String speciality;
+
+    @ElementCollection(fetch = FetchType.EAGER)
     private List<String> availableTimes;
 
-    public Doctor(String name, String speciality, String email, String password, String phone, List<String> availableTimes) {
+    // ==========================================
+    // REQUIRED: Default No-Argument Constructor
+    // ==========================================
+    public Doctor() {
+    }
+
+    // Parameterized Constructor
+    public Doctor(Long id, String name, String email, String password, String speciality, List<String> availableTimes) {
+        this.id = id;
         this.name = name;
-        this.speciality = speciality;
         this.email = email;
         this.password = password;
-        this.phone = phone;
+        this.speciality = speciality;
         this.availableTimes = availableTimes;
     }
 
+    // Getters and Setters
     public Long getId() {
         return id;
     }
@@ -59,28 +64,12 @@ public class Doctor {
         this.name = name;
     }
 
-    public String getSpeciality() {
-        return speciality;
-    }
-
-    public void setSpeciality(String speciality) {
-        this.speciality = speciality;
-    }
-
     public String getEmail() {
         return email;
     }
 
     public void setEmail(String email) {
         this.email = email;
-    }
-
-    public String getPhone() {
-        return phone;
-    }
-
-    public void setPhone(String phone) {
-        this.phone = phone;
     }
 
     public String getPassword() {
@@ -91,6 +80,14 @@ public class Doctor {
         this.password = password;
     }
 
+    public String getSpeciality() {
+        return speciality;
+    }
+
+    public void setSpeciality(String speciality) {
+        this.speciality = speciality;
+    }
+
     public List<String> getAvailableTimes() {
         return availableTimes;
     }
@@ -98,6 +95,4 @@ public class Doctor {
     public void setAvailableTimes(List<String> availableTimes) {
         this.availableTimes = availableTimes;
     }
-
 }
-

@@ -2,7 +2,6 @@
 import { getPatientAppointments, getPatientData, filterAppointments } from "./services/patientServices.js";
 
 const tableBody = document.getElementById("patientTableBody");
-const token = localStorage.getItem("token");
 
 let allAppointments = [];
 let filteredAppointments = [];
@@ -12,15 +11,30 @@ document.addEventListener("DOMContentLoaded", initializePage);
 
 async function initializePage() {
   try {
-    if (!token) throw new Error("No token found");
+    const token = localStorage.getItem("token");
+    if (!token) {
+      console.warn("No token found in localStorage.");
+      return;
+    }
 
-    const patient = await getPatientData(token);
-    if (!patient) throw new Error("Failed to fetch patient details");
+    // Fetch the patient profile first to get the correct numeric ID using the token
+    const patientRes = await getPatientData(token);
+    if (!patientRes || patientRes.unauthorized || !patientRes.id) {
+      console.error("Failed to retrieve valid patient data/ID from token.");
+      return;
+    }
 
-    patientId = Number(patient.id);
+    patientId = Number(patientRes.id);
 
-    const appointmentData = await getPatientAppointments(patientId, token, "patient") || [];
-    allAppointments = appointmentData.filter(app => app.patientId === patientId);
+    // Fetch all appointments immediately on page load
+    const result = await getPatientAppointments(patientId, token, "patient");
+    allAppointments = result.appointments || [];
+
+    // Set default filter dropdown to "allAppointments" if it isn't already
+    const filterElement = document.getElementById("appointmentFilter");
+    if (filterElement && !filterElement.value) {
+      filterElement.value = "allAppointments";
+    }
 
     renderAppointments(allAppointments);
   } catch (error) {
@@ -34,7 +48,7 @@ function renderAppointments(appointments) {
 
   const actionTh = document.querySelector("#patientTable thead tr th:last-child");
   if (actionTh) {
-    actionTh.style.display = "table-cell"; // Always show "Actions" column
+    actionTh.style.display = "table-cell";
   }
 
   if (!appointments.length) {
@@ -43,13 +57,18 @@ function renderAppointments(appointments) {
   }
 
   appointments.forEach(appointment => {
+    const patientName = appointment.patientName || appointment.patient?.name || "You";
+    const doctorName = appointment.doctorName || appointment.doctor?.name || appointment.doctor || "N/A";
+    const appointmentDate = appointment.appointmentDate || appointment.date || "N/A";
+    const appointmentTime = appointment.appointmentTimeOnly || appointment.time || appointment.appointmentTime || "N/A";
+
     const tr = document.createElement("tr");
     tr.innerHTML = `
-      <td>${appointment.patientName || "You"}</td>
-      <td>${appointment.doctorName}</td>
-      <td>${appointment.appointmentDate}</td>
-      <td>${appointment.appointmentTimeOnly}</td>
-      <td>${appointment.status == 0 ? `<img src="../assets/images/edit/edit.png" alt="Edit" class="prescription-btn" data-id="${appointment.patientId}">` : "-"}</td>
+      <td>${patientName}</td>
+      <td>${doctorName}</td>
+      <td>${appointmentDate}</td>
+      <td>${appointmentTime}</td>
+      <td>${appointment.status == 0 ? `<img src="../assets/images/edit/edit.png" alt="Edit" class="prescription-btn" data-id="${appointment.patientId || patientId}">` : "-"}</td>
     `;
 
     if (appointment.status == 0) {
@@ -62,39 +81,48 @@ function renderAppointments(appointments) {
 }
 
 function redirectToUpdatePage(appointment) {
-  // Prepare the query parameters
   const queryString = new URLSearchParams({
     appointmentId: appointment.id,
-    patientId: appointment.patientId,
+    patientId: appointment.patientId || patientId,
     patientName: appointment.patientName || "You",
-    doctorName: appointment.doctorName,
-    doctorId: appointment.doctorId,
-    appointmentDate: appointment.appointmentDate,
-    appointmentTime: appointment.appointmentTimeOnly,
+    doctorName: appointment.doctorName || appointment.doctor?.name || "N/A",
+    doctorId: appointment.doctorId || "",
+    appointmentDate: appointment.appointmentDate || appointment.date || "",
+    appointmentTime: appointment.appointmentTimeOnly || appointment.time || "",
   }).toString();
 
-  // Redirect to the update page with the query string
   setTimeout(() => {
     window.location.href = `/pages/updateAppointment.html?${queryString}`;
   }, 100);
 }
 
-
 // Search and Filter Listeners
-document.getElementById("searchBar").addEventListener("input", handleFilterChange);
-document.getElementById("appointmentFilter").addEventListener("change", handleFilterChange);
+document.getElementById("searchBar")?.addEventListener("input", handleFilterChange);
+document.getElementById("appointmentFilter")?.addEventListener("change", handleFilterChange);
 
 async function handleFilterChange() {
+  const token = localStorage.getItem("token");
+  if (!token) return;
+
   const searchBarValue = document.getElementById("searchBar").value.trim();
   const filterValue = document.getElementById("appointmentFilter").value;
 
   const name = searchBarValue || null;
-  const condition = filterValue === "allAppointments" ? null : filterValue || null;
+
+  // If "allAppointments" or empty is selected, bypass backend filter and show all cached appointments
+  if (!filterValue || filterValue === "allAppointments" || filterValue === "All Appointments") {
+    if (!name) {
+      renderAppointments(allAppointments);
+      return;
+    }
+  }
+
+  const condition = (filterValue === "allAppointments" || filterValue === "All Appointments") ? null : filterValue;
 
   try {
     const response = await filterAppointments(condition, name, token);
     const appointments = response?.appointments || [];
-    filteredAppointments = appointments.filter(app => app.patientId === patientId);
+    filteredAppointments = appointments;
 
     renderAppointments(filteredAppointments);
   } catch (error) {
@@ -102,4 +130,3 @@ async function handleFilterChange() {
     alert("❌ An error occurred while filtering appointments.");
   }
 }
-

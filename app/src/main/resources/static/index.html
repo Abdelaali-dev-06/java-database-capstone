@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <title>Select Role</title>
-    <link rel="icon" type="image/png" href="../assets/images/logo/Logo.png">
+    <link rel="icon" type="image/png" href="../assets/images/logo/logo.png">
 
     <link rel="stylesheet" href="../assets/css/index.css">
     <link rel="stylesheet" href="../assets/css/style.css">
@@ -20,11 +20,11 @@
         <div id="header"></div>
 
         <main class="main-content">
-            <h2>Select Your Role</h2>
+            <h2>Select Your <span style="color: #A62B1F">Role </span></h2>
             <div class="role-buttons">
-                <button id="adminBtn" onclick="selectRole('admin')">Admin</button>
+                <button id="adminLogin">Admin</button>
                 <button id="patientBtn" onclick="selectRole('patient')">Patient</button>
-                <button id="doctorBtn" onclick="selectRole('doctor')">Doctor</button>
+                <button id="doctorLogin">Doctor</button>
             </div>
         </main>
 
@@ -39,6 +39,7 @@
     </div>
 </div>
 
-<script type="module" src="../js/index.js" defer></script>
+<!-- Corrected Script Path -->
+<script type="module" src="../js/services/index.js" defer></script>
 </body>
 </html>

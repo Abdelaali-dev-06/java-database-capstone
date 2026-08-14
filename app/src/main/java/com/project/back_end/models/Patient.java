@@ -1,41 +1,41 @@
 package com.project.back_end.models;
-import jakarta.persistence.Entity;
-import jakarta.persistence.Id;
-import jakarta.persistence.GeneratedValue;
-import jakarta.persistence.GenerationType;
-import jakarta.validation.constraints.NotNull;
-import jakarta.validation.constraints.Size;
-import jakarta.validation.constraints.Email;
-import jakarta.validation.constraints.Pattern;
+
+import jakarta.persistence.*;
 
 @Entity
+@Table(name = "patient")
 public class Patient {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
-    @NotNull
-    @Size(min=3,max=50)
-    private String name;
-    @Email
-    @NotNull
-    private String email;
-    @NotNull
-    @Size(min = 6)
-    private String password;
-    @NotNull
-    @Pattern(regexp = "^[0-9]{10}$")
-    private String phone;
-    @NotNull
-    @Size(max=255)
-    private String adress;
 
-    public Patient(String name, String email, String password, String phone, String adress) {
+    @Column(nullable = false)
+    private String name;
+
+    @Column(nullable = false, unique = true)
+    private String email;
+
+    @Column(nullable = false)
+    private String password;
+
+    @Column(nullable = false)
+    private String phone;
+
+    @Column(nullable = false)
+    private String address;
+
+    // Default No-Arg Constructor (Required by JPA)
+    public Patient() {
+    }
+
+    public Patient(Long id, String name, String email, String password, String phone, String address) {
+        this.id = id;
         this.name = name;
         this.email = email;
         this.password = password;
         this.phone = phone;
-        this.adress = adress;
+        this.address = address;
     }
 
     public Long getId() {
@@ -78,12 +78,11 @@ public class Patient {
         this.phone = phone;
     }
 
-    public String getAdress() {
-        return adress;
+    public String getAddress() {
+        return address;
     }
 
-    public void setAdress(String adress) {
-        this.adress = adress;
+    public void setAddress(String address) {
+        this.address = address;
     }
-
 }

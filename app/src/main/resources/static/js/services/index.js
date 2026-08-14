@@ -1,111 +1,138 @@
-// index.js
+import { openModal } from "/js/components/modals.js";
+import { API_BASE_URL } from "/js/config/config.js";
 
-// Import the openModal function to handle showing login popups/modals
-import { openModal } from "./components/modal.js";
+const cleanBaseUrl = API_BASE_URL ? API_BASE_URL.replace(/\/+$/, "") : "";
+const ADMIN_API = `${cleanBaseUrl}/admin/login`;
+const DOCTOR_API = `${cleanBaseUrl}/doctor/login`;
 
-// Import the base API URL from the config file
-import { API_BASE_URL } from "./config/config.js";
-
-// Define constants for the admin and doctor login API endpoints
-const ADMIN_API = `${API_BASE_URL}/admin/login`;
-const DOCTOR_API = `${API_BASE_URL}/doctor/login`;
-
-// Use window.onload to ensure DOM elements are available after page load
 window.onload = function () {
-    // Select the "adminLogin" and "doctorLogin" buttons
     const adminLoginBtn = document.getElementById("adminLogin");
     const doctorLoginBtn = document.getElementById("doctorLogin");
 
-    // If the admin login button exists, open the admin login modal on click
     if (adminLoginBtn) {
-        adminLoginBtn.addEventListener("click", () => {
-            openModal("adminLogin");
-        });
+        adminLoginBtn.addEventListener("click", () => openModal("adminLogin"));
     }
 
-    // If the doctor login button exists, open the doctor login modal on click
     if (doctorLoginBtn) {
-        doctorLoginBtn.addEventListener("click", () => {
-            openModal("doctorLogin");
-        });
+        doctorLoginBtn.addEventListener("click", () => openModal("doctorLogin"));
     }
 };
 
-// Define adminLoginHandler on the global window object
-window.adminLoginHandler = async function () {
+window.adminLoginHandler = async function (event) {
+    if (event && typeof event.preventDefault === "function") {
+        event.preventDefault();
+    }
+
     try {
-        // Step 1: Get the entered username and password from the input fields
-        const username = document.getElementById("adminUsername").value;
-        const password = document.getElementById("adminPassword").value;
+        const usernameEl = document.getElementById("adminUsername");
+        const passwordEl = document.getElementById("adminPassword");
 
-        // Step 2: Create an admin object with these credentials
-        const admin = { username, password };
+        if (!usernameEl || !passwordEl) {
+            alert("Admin login input fields not found.");
+            return;
+        }
 
-        // Step 3: Send a POST request to the ADMIN_API endpoint
+        const usernameVal = usernameEl.value.trim();
+        const passwordVal = passwordEl.value.trim();
+
+        if (!usernameVal || !passwordVal) {
+            alert("Please enter both username and password.");
+            return;
+        }
+
+        // ✅ FIX: Payload now matches MySQL schema (id, username, password)
+        const adminPayload = {
+            username: usernameVal,
+            password: passwordVal
+        };
+
         const response = await fetch(ADMIN_API, {
             method: "POST",
             headers: {
                 "Content-Type": "application/json",
+                "Accept": "application/json"
             },
-            body: JSON.stringify(admin),
+            body: JSON.stringify(adminPayload),
         });
 
-        // Step 4: If the response is successful
         if (response.ok) {
             const data = await response.json();
-
-            // Store the token in localStorage
             localStorage.setItem("token", data.token);
             localStorage.setItem("userRole", "admin");
 
-            // Call selectRole('admin') to proceed with admin-specific behavior
-            selectRole("admin");
+            if (typeof selectRole === "function") {
+                selectRole("admin");
+            } else if (typeof window.selectRole === "function") {
+                window.selectRole("admin");
+            }
         } else {
-            // Step 5: If login fails or credentials are invalid
-            alert("Invalid admin credentials. Please try again.");
+            const errData = await response.json().catch(() => ({}));
+            alert(errData.message || "Invalid admin credentials. Please try again.");
         }
     } catch (error) {
-        // Step 6: Handle network or server errors
         console.error("Error during admin login:", error);
         alert("Something went wrong while logging in. Please try again later.");
     }
 };
 
-// Define doctorLoginHandler on the global window object
-window.doctorLoginHandler = async function () {
+window.doctorLoginHandler = async function (event) {
+    // Prevent form submission reload immediately
+    if (event) {
+        event.preventDefault();
+    }
+
     try {
-        // Step 1: Get the entered email and password from the input fields
-        const email = document.getElementById("doctorEmail").value;
-        const password = document.getElementById("doctorPassword").value;
+        const emailEl = document.getElementById("doctorEmail");
+        const passwordEl = document.getElementById("doctorPassword");
 
-        // Step 2: Create a doctor object with these credentials
-        const doctor = { email, password };
+        if (!emailEl || !passwordEl) {
+            alert("Doctor login input fields not found.");
+            return;
+        }
 
-        // Step 3: Send a POST request to the DOCTOR_API endpoint
+        const emailVal = emailEl.value.trim();
+        const passwordVal = passwordEl.value.trim();
+
+        if (!emailVal || !passwordVal) {
+            alert("Please enter both email and password.");
+            return;
+        }
+
+        const doctorPayload = {
+            email: emailVal,
+            username: emailVal,
+            password: passwordVal
+        };
+
         const response = await fetch(DOCTOR_API, {
             method: "POST",
             headers: {
                 "Content-Type": "application/json",
+                "Accept": "application/json"
             },
-            body: JSON.stringify(doctor),
+            body: JSON.stringify(doctorPayload),
         });
 
-        // Step 4: If login is successful
         if (response.ok) {
             const data = await response.json();
-
-            // Store the token in localStorage
             localStorage.setItem("token", data.token);
             localStorage.setItem("userRole", "doctor");
 
-            // Call selectRole('doctor') to proceed with doctor-specific behavior
-            selectRole("doctor");
+            if (typeof selectRole === "function") {
+                selectRole("doctor");
+            } else if (typeof window.selectRole === "function") {
+                window.selectRole("doctor");
+            } else {
+                window.location.href = `/doctorDashboard/${data.token}`;
+            }
+        } else if (response.status === 401) {
+            const errData = await response.json().catch(() => ({}));
+            alert(errData.message || "Invalid doctor credentials (email or password incorrect).");
         } else {
-            // Step 5: If login fails
-            alert("Invalid doctor credentials. Please try again.");
+            const errData = await response.json().catch(() => ({}));
+            alert(errData.message || ("Login failed with status " + response.status + ". Please try again."));
         }
     } catch (error) {
-        // Step 6: Handle errors gracefully
         console.error("Error during doctor login:", error);
         alert("Something went wrong while logging in. Please try again later.");
     }

@@ -1,23 +1,37 @@
-// patientRows.js
-export function createPatientRow(patient, appointmentId, doctorId) {
+// static/js/components/patientRows.js
+
+export function createPatientRow(patient, appointment) {
   const tr = document.createElement("tr");
-  console.log("CreatePatientRow :: ", doctorId)
+
   tr.innerHTML = `
-      <td class="patient-id">${patient.id}</td>
-      <td>${patient.name}</td>
-      <td>${patient.phone}</td>
-      <td>${patient.email}</td>
-      <td><img src="../assets/images/addPrescriptionIcon/addPrescription.png" alt="addPrescriptionIcon" class="prescription-btn" data-id="${patient.id}"></img></td>
+        <td>${patient.id}</td>
+        <td>${patient.name}</td>
+        <td>${patient.phone}</td>
+        <td>${patient.email}</td>
+        <td>
+            <img src="../assets/images/addPrescriptionIcon/addPrescription.png" 
+                 class="prescription-icon" 
+                 style="width: 32px; height: 32px; object-fit: contain; cursor: pointer;"
+                 alt="Prescription"/>
+        </td>
     `;
 
-  // Attach event listeners
-  tr.querySelector(".patient-id").addEventListener("click", () => {
-    window.location.href = `/pages/patientRecord.html?id=${patient.id}&doctorId=${doctorId}`;
-  });
+  const prescriptionIcon = tr.querySelector(".prescription-icon");
 
-  tr.querySelector(".prescription-btn").addEventListener("click", () => {
-    window.location.href = `/pages/addPrescription.html?appointmentId=${appointmentId}&patientName=${patient.name}`;
-  });
+  if (prescriptionIcon) {
+    prescriptionIcon.addEventListener("click", () => {
+      const appointmentId = appointment.id || appointment.appointmentId;
+      const patientId = patient.id || appointment.patientId;
+      const patientName = encodeURIComponent(patient.name || "");
+
+      if (!appointmentId) {
+        alert("Error: Missing appointment ID.");
+        return;
+      }
+
+      window.location.href = `/pages/addPrescription.html?appointmentId=${appointmentId}&patientId=${patientId}&patientName=${patientName}`;
+    });
+  }
 
   return tr;
 }

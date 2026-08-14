@@ -1,97 +1,120 @@
-// patientServices
+// assets/js/services/patientServices.js
 import { API_BASE_URL } from "../config/config.js";
-const PATIENT_API = API_BASE_URL + '/patient'
+const PATIENT_API = API_BASE_URL + '/patient';
 
-
-//For creating a patient in db
+// For creating a patient in DB
 export async function patientSignup(data) {
   try {
-    const response = await fetch(`${PATIENT_API}`,
-      {
-        method: "POST",
-        headers: {
-          "Content-type": "application/json"
-        },
-        body: JSON.stringify(data)
-      }
-    );
+    const response = await fetch(`${PATIENT_API}`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify(data)
+    });
     const result = await response.json();
     if (!response.ok) {
-      throw new Error(result.message);
+      throw new Error(result.message || "Signup failed");
     }
-    return { success: response.ok, message: result.message }
-  }
-  catch (error) {
-    console.error("Error :: patientSignup :: ", error)
-    return { success: false, message: error.message }
+    return { success: response.ok, message: result.message };
+  } catch (error) {
+    console.error("Error :: patientSignup :: ", error);
+    return { success: false, message: error.message };
   }
 }
 
-//For logging in patient
+// For logging in patient
 export async function patientLogin(data) {
-  console.log("patientLogin :: ", data)
-  return await fetch(`${PATIENT_API}/login`, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json"
-    },
-    body: JSON.stringify(data)
-  });
-
-
+  try {
+    return await fetch(`${PATIENT_API}/login`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify(data)
+    });
+  } catch (error) {
+    console.error("Error :: patientLogin :: ", error);
+    throw error;
+  }
 }
 
-// For getting patient data (name ,id , etc ). Used in booking appointments
+// For getting patient data
 export async function getPatientData(token) {
   try {
-    const response = await fetch(`${PATIENT_API}/${token}`);
+    const response = await fetch(`${PATIENT_API}/${token}`, {
+      method: "GET",
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${token}`
+      }
+    });
+
+    if (response.status === 401) {
+      return { unauthorized: true };
+    }
+
+    if (!response.ok) return null;
     const data = await response.json();
-    if (response.ok) return data.patient;
-    return null;
+    return data.patient || null;
   } catch (error) {
     console.error("Error fetching patient details:", error);
     return null;
   }
 }
 
-// the Backend API for fetching the patient record(visible in Doctor Dashboard) and Appointments (visible in Patient Dashboard) are same based on user(patient/doctor).
+// For fetching patient appointments
 export async function getPatientAppointments(id, token, user) {
   try {
-    const response = await fetch(`${PATIENT_API}/${id}/${user}/${token}`);
-    const data = await response.json();
-    console.log(data.appointments)
-    if (response.ok) {
-      return data.appointments;
+    // Matches the backend controller route: /patient/{id}/{token}/{user}
+    const response = await fetch(`${PATIENT_API}/${id}/${token}/${user}`, {
+      method: "GET",
+      headers: {
+        "Content-Type": "application/json"
+      }
+    });
+
+    if (response.status === 401) {
+      console.warn("401 Unauthorized: The backend rejected this token or route.");
+      return { unauthorized: true, appointments: [] };
     }
-    return null;
-  }
-  catch (error) {
-    console.error("Error fetching patient details:", error);
-    return null;
+
+    if (!response.ok) {
+      console.error(`Appointment Fetch Error: ${response.status} ${response.statusText}`);
+      return { unauthorized: false, appointments: [] };
+    }
+
+    const data = await response.json();
+    return { unauthorized: false, appointments: data.appointments || [] };
+  } catch (error) {
+    console.error("Error fetching patient appointments:", error);
+    return { unauthorized: false, appointments: [] };
   }
 }
 
+// For filtering appointments
 export async function filterAppointments(condition, name, token) {
   try {
     const response = await fetch(`${PATIENT_API}/filter/${condition}/${name}/${token}`, {
       method: "GET",
       headers: {
         "Content-Type": "application/json",
-      },
+        "Authorization": `Bearer ${token}`
+      }
     });
 
+    if (response.status === 401) {
+      return { unauthorized: true, appointments: [] };
+    }
+
     if (response.ok) {
-      const data = await response.json();
-      return data;
-
+      return await response.json();
     } else {
-      console.error("Failed to fetch doctors:", response.statusText);
+      console.error("Failed to filter appointments:", response.statusText);
       return { appointments: [] };
-
     }
   } catch (error) {
-    console.error("Error:", error);
-    alert("Something went wrong!");
+    console.error("Error filtering appointments:", error);
     return { appointments: [] };
   }
 }

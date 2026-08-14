@@ -1,19 +1,34 @@
 // appointmentRow.js
-export function getAppointments(appointment) {
-  const tr = document.createElement("tr");
 
-  tr.innerHTML = `
-      <td class="patient-id">${appointment.patientName}</td>
-      <td>${appointment.doctorName}</td>
-      <td>${appointment.date}</td>
-      <td>${appointment.time}</td>
-      <td><img src="../assets/images/edit/edit.png" alt="action" class="prescription-btn" data-id="${appointment.id}"></img></td>
-    `;
+export function createAppointmentRow(appointment) {
+  const row = document.createElement("tr");
 
-  // Attach event listeners
-  tr.querySelector(".prescription-btn").addEventListener("click", () => {
-    window.location.href = `addPrescription.html?id=${patient.id}`;
+  const dateCell = document.createElement("td");
+  dateCell.textContent = appointment.appointmentDate || appointment.date;
+
+  const doctorCell = document.createElement("td");
+  doctorCell.textContent = appointment.doctorName;
+
+  const statusCell = document.createElement("td");
+  statusCell.textContent = appointment.status;
+
+  const actionCell = document.createElement("td");
+  const viewPrescriptionBtn = document.createElement("button");
+  viewPrescriptionBtn.className = "btn-secondary";
+  viewPrescriptionBtn.textContent = "View Prescription";
+
+  viewPrescriptionBtn.addEventListener("click", () => {
+    // Corrected reference to use appointment's patient info or appointment ID
+    const targetPatientId = appointment.patientId || appointment.id;
+    window.location.href = `addPrescription.html?appointmentId=${appointment.id}&patientId=${targetPatientId}&mode=view`;
   });
 
-  return tr;
+  actionCell.appendChild(viewPrescriptionBtn);
+
+  row.appendChild(dateCell);
+  row.appendChild(doctorCell);
+  row.appendChild(statusCell);
+  row.appendChild(actionCell);
+
+  return row;
 }
